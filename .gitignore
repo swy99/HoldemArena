@@ -1,0 +1,41 @@
+# 환경 설정 파일
+.env
+.env.local
+.env.*.local
+
+# 데이터베이스
+*.db
+*.sqlite
+*.sqlite3
+
+# 로그 파일
+logs/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# 임시 파일
+*.swp
+*.swo
+*~
+.DS_Store
+.vscode/
+.idea/
+
+# 개인 메모/테스트 파일
+todo.txt
+help.txt
+c.py
+test_*.py
+temp_*.py
+
+# 특정 임시 파일
+프로젝트\ 폴더\ 트리구조.md

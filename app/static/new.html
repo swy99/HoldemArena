@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hold'em Arena</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="manifest" href="/static/manifest.json">
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script>tailwind.config={theme:{extend:{colors:{primary:'#082616',secondary:'#C8A327',tertiary:'#FFF8E8'},borderRadius:{'none':'0px','sm':'4px',DEFAULT:'8px','md':'12px','lg':'16px','xl':'20px','2xl':'24px','3xl':'32px','full':'9999px','button':'8px'}}}}</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
+    <style>
+        :where([class^="ri-"])::before { content: "\f3c2"; }
+        body {
+            background-color: #082616;
+            color: #FFF8E8;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .card-shadow {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            background: #FFF8E8;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body class="">
+    <main class="min-h-screen flex items-center justify-center px-4 py-8" style="margin-top: -20vh;">
+        <div class="w-full max-w-sm space-y-6">
+            <div class="text-center space-y-2">
+                <h2 class="text-2xl text-tertiary font-['Montserrat'] font-medium leading-relaxed mb-7">Welcome! You're new to <span class="text-secondary font-bold">Hold'em Arena</span>.</h2>
+                <p class="text-[17px] text-tertiary font-['Montserrat'] leading-relaxed">Choose your player name</p>
+                <p class="text-[12px] text-tertiary/70 font-['Montserrat'] leading-relaxed">others will see this at the table</p>
+            </div>
+            <div class="space-y-4">
+                <div class="relative mb-8">
+                    <input
+                    type="text"
+                    id="username"
+                    class="w-full px-4 py-3 rounded bg-white bg-opacity-90 text-primary border-none focus:outline-none focus:ring-2 focus:ring-secondary font-['Montserrat'] text-base"
+                    placeholder="Enter username"
+                    autocomplete="off"
+                    >
+                    <p id="usernameMessage" class="absolute -bottom-6 left-0 text-[13px]"></p>
+                </div>
+                <div class="h-[52px]">
+                    <button
+                    id="submitButton"
+                    class="w-full bg-secondary text-white py-3 px-4 !rounded-button font-['Montserrat'] font-medium transition-all duration-200 opacity-0 invisible text-base"
+                    >
+                    Create Account
+                </button>
+            </div>
+        </div>
+    </div>
+</main>
+<div id="confirmModal" class="modal flex items-center justify-center px-4" style="display:none;">
+    <div class="modal-content w-full max-w-sm p-6 text-primary">
+        <h3 class="text-lg font-medium mb-4 font-['Montserrat']">Confirm Username</h3>
+        <p class="text-sm mb-6 text-primary/80 font-['Montserrat']">Are you sure you want to use "<span id="confirmUsername" class="font-medium"></span>" as your username?</p>
+        <div class="flex gap-3">
+            <button id="cancelButton" class="flex-1 py-2.5 px-4 !rounded-button border border-primary/20 text-primary/80 font-['Montserrat'] text-sm">Cancel</button>
+            <button id="confirmButton" class="flex-1 py-2.5 px-4 !rounded-button bg-secondary text-tertiary font-['Montserrat'] text-sm">Confirm</button>
+        </div>
+    </div>
+</div>
+<script>
+    const cancelButton = document.getElementById('cancelButton');
+    const confirmModal = document.getElementById('confirmModal');
+    const confirmUsername = document.getElementById('confirmUsername');
+    const confirmButton = document.getElementById('confirmButton');
+    document.getElementById("username").oninput = validateForm;
+    
+    async function validateForm() {
+        const username = document.getElementById('username').value.trim();
+        
+        let valid = true;
+        if (username.length < 2 || username.length > 20) {
+            usernameMessage.textContent = 'Username must be 2-20 characters';
+            usernameMessage.className = 'absolute -bottom-7 left-0 text-xs text-red-400';
+            submitButton.style.transition = 'none';
+            submitButton.style.opacity = '0';
+            submitButton.style.visibility = 'hidden';
+        } else {
+            const res = await fetch(`/api/check_username?username=${encodeURIComponent(username)}`);
+            const data = await res.json();
+            if (data.available) {
+                usernameMessage.textContent = 'Username available';
+                usernameMessage.className = 'absolute -bottom-7 left-0 text-xs text-green-400';
+                submitButton.style.transition = 'opacity 0.2s ease-in';
+                submitButton.style.opacity = '1';
+                submitButton.style.visibility = 'visible';
+            } else {
+                usernameMessage.textContent = 'Username already taken';
+                usernameMessage.className = 'absolute -bottom-7 left-0 text-xs text-red-400';
+                submitButton.style.transition = 'none';
+                submitButton.style.opacity = '0';
+                submitButton.style.visibility = 'hidden';
+            }
+        }
+    }
+    
+    document.getElementById("submitButton").onclick = async function(e) {
+        const username = document.getElementById('username').value.trim();
+        
+        if (username.length < 2 || username.length > 20) return;
+        const res = await fetch(`/api/check_username?username=${encodeURIComponent(username)}`);
+        const data = await res.json();
+        if (!data.available) return;
+        confirmUsername.textContent = username;
+        confirmModal.style.display = 'flex';
+        confirmButton.addEventListener('click', function() {
+            const provider = new URLSearchParams(location.search).get("provider");
+            if (provider === "google"){
+                registerGoogleUsername(username);
+            }
+        });
+    };
+    cancelButton.addEventListener('click', function() {
+        confirmModal.style.display = 'none';
+    });
+
+    async function registerGoogleUsername(username) {
+        const temp_token = localStorage.getItem("holdemarena_temp_token");
+        
+        const res = await fetch("/api/google_register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ temp_token : temp_token, username : username })
+        });
+        
+        if (!res.ok) {
+            const err = await res.json();
+            alert("회원가입 실패: " + err.detail);
+            return;
+        }
+        
+        const data = await res.json();
+        localStorage.setItem("holdemarena_token", data.token);
+        localStorage.setItem("holdemarena_username", data.username);
+        localStorage.removeItem("holdemarena_temp_token");
+        
+        location.replace("/static/index.html");
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        const token = localStorage.getItem("holdemarena_token");
+        if (token){
+            fetch("/api/me", {
+                headers: { Authorization: "Bearer " + localStorage.getItem("holdemarena_token") }
+            }).then(res => {
+                console.log(res.status);
+                res.json().then(x => console.log(x));
+                if (res.status === "401"){
+                    return;
+                }
+                if (res.ok) {
+                    location.href = "/static/delete.html";
+                }
+            });
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-signin-client_id" content="167258769454-vtv9mhvbjse3gtpfp6e3t0q0m1gqgiti.apps.googleusercontent.com">
+    <title>Hold'em Arena</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="manifest" href="/static/manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/service-worker.js');
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script>tailwind.config={theme:{extend:{colors:{primary:'#082616',secondary:'#C8A327'},borderRadius:{'none':'0px','sm':'4px',DEFAULT:'8px','md':'12px','lg':'16px','xl':'20px','2xl':'24px','3xl':'32px','full':'9999px','button':'8px'}}}}</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        :where([class^="ri-"])::before { content: "\f3c2"; }
+        body {
+            font-family: 'League GothicAnton', sans-serif;
+            background-color: #000000;
+            color: #FFF8E8;
+            min-height: 100vh;
+        }
+        #bgVideo {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%); /* 가운데 정렬 */
+            height: 100vh;               /* ✅ 세로 꽉 채움 */
+            width: auto;                 /* 비율 유지 */
+            object-fit: cover;           /* ✅ 좌우 잘림 허용 */
+            z-index: -1;
+            pointer-events: none;
+            filter: blur(6px) brightness(0.5);
+        }
+        .skinny-text {
+            letter-spacing:-0.025em;
+            transform: scaleX(0.9);
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between">
+    </video>
+    <div class="w-full max-w-[375px] px-6 py-8 flex flex-col items-center justify-between min-h-screen relative z-10">
+        <!-- Welcome Content -->
+        <div class="w-full flex flex-col items-center mt-10">
+            <div class="w-full flex flex-col items-center mb-12">
+                <div class=" flex justify-center items-center text-2xl font-semibold text-[#FFF8E8] whitespace-nowrap">
+                    <img src="/static/img/logo_alpha5.png?v=1" alt="Logo" class="w-[80%] drop-shadow-[0_0_5px_#082616]">
+                </div>
+                <p class="text-[#FFF8E8] opacity-80 text-center mb-8">Please log in to delete your account</p>
+            </div>
+            <!-- Login Options -->
+            <div class="w-full flex flex-col gap-5 mb-12">
+                <!-- Google -->
+                <button
+                onclick="google()"
+                class="w-full bg-[#FFF8E8] text-primary py-3 px-4 rounded-button flex items-center justify-center gap-3 font-medium cursor-pointer hover:bg-secondary hover:text-[#FFF8E8] transition-colors duration-30">
+                    <div class="w-6 h-6 flex items-center justify-center">
+                        <i class="ri-google-fill ri-lg"></i>
+                    </div>
+                    <span>Continue with Google</span>
+                </button>
+            <div id="g_id_signin_wrapper" class="w-full">
+                <div id="g_id_signin"></div>
+            </div>
+            <!-- Apple -->
+            <!-- <button class="w-full bg-[#FFF8E8] text-primary py-3 px-4 rounded-button flex items-center justify-center gap-3 font-medium cursor-pointer hover:bg-[#C8A327] hover:text-[#FFF8E8] transition-colors duration-30">
+                <div class="w-6 h-6 flex items-center justify-center">
+                    <i class="ri-apple-fill ri-lg"></i>
+                </div>
+                <span>Continue with Apple</span>
+            </button> -->
+            <!-- Facebook -->
+            <!-- <button class="w-full bg-[#FFF8E8] text-primary py-3 px-4 rounded-button flex items-center justify-center gap-3 font-medium cursor-pointer hover:bg-[#C8A327] hover:text-[#FFF8E8] transition-colors duration-30">
+                <div class="w-6 h-6 flex items-center justify-center">
+                    <i class="ri-facebook-fill ri-lg"></i>
+                </div>
+                <span>Continue with Facebook</span>
+            </button> -->
+            <!-- X (Twitter) -->
+            <!-- <button class="w-full bg-[#FFF8E8] text-primary py-3 px-4 rounded-button flex items-center justify-center gap-3 font-medium cursor-pointer hover:bg-[#C8A327] hover:text-[#FFF8E8] transition-colors duration-30">
+                <div class="w-6 h-6 flex items-center justify-center">
+                    <i class="ri-twitter-x-fill ri-lg"></i>
+                </div>
+                <span>Continue with X</span>
+            </button> -->
+            <!-- Kakao -->
+            <!-- <button class="w-full bg-[#FEE500] text-[#3C1E1E] py-3 px-4 rounded-button flex items-center justify-center gap-3 font-medium cursor-pointer hover:bg-[#E6CF00] transition-colors duration-30">
+                <div class="w-6 h-6 flex items-center justify-center">
+                    <i class="ri-kakao-talk-fill ri-lg"></i>
+                </div>
+                <span>Continue with Kakao</span>
+            </button> -->
+            <!-- Naver -->
+            <!-- <button class="w-full bg-[#03C75A] text-[#FFF8E8] py-3 px-4 rounded-button flex items-center justify-center gap-3 font-medium cursor-pointer hover:bg-[#02B350] transition-colors duration-30">
+                <div class="w-6 h-6 flex items-center justify-center">
+                    <i class="ri-chat-1-fill ri-lg"></i>
+                </div>
+                <span>Continue with NAVER</span>
+            </button> -->
+        </div>
+    </div>
+    <script>
+        function google(){
+            location.href = "/api/google_login_delete";
+        }
+    </script>
+</body>
+</html>

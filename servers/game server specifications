@@ -1,0 +1,60 @@
+game_id % number_of_workers 기반 분산처리
+
+worker 루프 하나에는 3개의 루프가 비동기로 동작함
+	- 게임 레지스트리 매니저 루프 (game_registry_manager_loop)
+	- 게임 스텝 핸들러 루프 (game_step_handler_loop)
+	- 게임 타임아웃 디텍터 루프 (game_timeout_detector_loop)
+
+각 루프에 요청을 할 때에는 redis 큐를 사용해서 통신함.
+	- 게임 레지스트리 매니저 메시지 형식
+        {
+            "type": "init"
+            "body": {
+                "game_id": "abc123",
+                "game_type": "quick_play",
+                "uids": ["uid1", "uid2", ...],
+                "player_ids": ["player_id1", "player_id2", ...],
+                "room_settings": {
+                    "chips": [2000, 2000, ...],
+                    "sb": 1,
+                    "bb": 2,
+                    "base_time": 15.0,
+                    "timebank": 30.0,
+                    "grace": 1.0,
+                    "round_delay": 5.0
+                }
+            }
+        } |
+        {
+            "type": "gc"
+            "body": {
+                "game_id": "abc123",
+            }
+        }
+    - 게임 스텝 핸들러 루프 메시지 형식
+        {
+            "type": "game_init",
+            "game_id": "abc123"
+        } |
+        {
+            "type": "timeout_possibility",
+            "game_id": "abc123",
+        } |
+        {
+            "type": "action",
+            "game_id": "abc123",
+            "player_id": "p1",
+            "amount": 40,
+            "action_count": 17,
+            "received_at": 1748021321.53
+        }
+        {
+            "type": "send_state_to_user",
+            "game_id": "abc123",
+            "player_id": "p1",
+        }
+    - 게임 타임아웃 디텍터 메시지 형식
+        {
+            "game_id": "abc123"
+        }
+

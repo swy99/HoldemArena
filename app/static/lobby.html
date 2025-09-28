@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hold'em Arena</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="manifest" href="/static/manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/service-worker.js');
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script>tailwind.config={theme:{extend:{colors:{primary:'#0e4429',secondary:'#d4af37'},borderRadius:{'none':'0px','sm':'4px',DEFAULT:'8px','md':'12px','lg':'16px','xl':'20px','2xl':'24px','3xl':'32px','full':'9999px','button':'8px'}}}}</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
+    <style>
+        :where([class^="ri-"])::before { content: "\f3c2"; }
+        body {
+            font-family: sans-serif;
+            background-color: #f9f9f9;
+        }
+        .tournament-card {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        .player-stats {
+            background: linear-gradient(135deg, #0e4429 0%, #155c37 100%);
+        }
+        .chip-count {
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        .tab-active {
+            border-bottom: 2px solid #d4af37;
+        }
+        .tournament-badge {
+            background: rgba(212, 175, 55, 0.15);
+        }#chatWindow {
+            display: flex;
+            flex-direction: column;
+            height: 500px; /* 전체 채팅창 높이 */
+        }
+        #chatWindow .flex.flex-col {
+            flex: 1;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-800">
+    <div id="blurOverlay" class="fixed inset-0 bg-black/10 backdrop-blur-sm z-40 hidden"></div>
+    <!-- Header -->
+    <header class="bg-primary text-white fixed w-full top-0 z-50 shadow-md">
+        <div class="flex items-center justify-between px-4 py-3">
+            
+            <div class="w-8 h-8 flex items-center justify-center cursor-pointer hover:text-red-500" onclick="logout()">
+                <i class="ri-logout-box-line ri-xl"></i>
+            </div>
+            <div class="flex items-center">
+                
+                <div class="flex items-center ml-3">
+                    <img src="/static/img/logo_alpha4.png" alt="Logo" class="w-4 h-5 mr-2">
+                    <h1 class="font-['Montserrat'] text-xl font-bold">HOLD'EM ARENA</h1>
+                </div>
+            </div>
+            <div class="flex items-center">
+                <!-- <button
+                id="deleteAccountButton"
+                class="w-8 h-8 flex items-center justify-center cursor-pointer text-red-500 hover:text-white">
+                    <i class="ri-user-unfollow-line ri-lg"></i>
+                </button> -->
+                <div class="relative w-8 h-8 flex items-center justify-center hover:text-secondary">
+                    <i id="friends" class="ri-group-line ri-lg "></i>
+                    <div id="friend-global-indicator"
+                        class="absolute top-0 right-0 w-2.5 h-2.5 bg-[radial-gradient(closest-side,#d4af37_45%,#e9c767_85%,white_100%)]
+                        rounded-full animate-pulse hidden">
+                    </div>
+                </div>
+            </div>
+            <div id="sideNav" class="fixed top-0 right-0 h-full w-72 bg-white transform translate-x-full transition-transform duration-300 ease-in-out shadow-lg z-50">
+                <div class="p-4 bg-primary text-white flex items-center justify-between">
+                    <h3 class="font-semibold">Friends</h3>
+                    <button id="closeSideNav" class="p-1 hover:bg-white/10 rounded-full">
+                        <i class="ri-close-line ri-lg"></i>
+                    </button>
+                </div>
+                <div class="overflow-y-auto h-[calc(100%-60px)]">
+                    <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span class="text-sm text-gray-600">0 Online</span>
+                        </div>
+                        <button id="addFriendButton" class="p-2 text-primary hover:bg-primary/5 rounded-full">
+                            <i class="ri-user-add-line ri-lg"></i>
+                        </button>
+                    </div>
+                    <div class="px-4 py-3 border-b border-gray-100 bg-primary/5">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                                    <i class="ri-user-add-line text-primary"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-black font-medium">Emma Wattson</p>
+                                    <p class="text-xs text-gray-500">wants to be friends</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button class="w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center hover:bg-green-600 transition-colors">
+                                    <i class="ri-check-line"></i>
+                                </button>
+                                <button class="w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors">
+                                    <i class="ri-close-line"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="divide-y divide-gray-100">
+                        <div class="p-3 flex items-center hover:bg-gray-50 cursor-pointer">
+                            <div class="w-4 h-4 rounded-full bg-green-500 mr-3"></div>
+                            <div class="flex-1">
+                                <p class="font-medium text-gray-800">Alexandra Walker</p>
+                                <p class="text-xs text-gray-500">Online</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 bg-[radial-gradient(closest-side,#d4af37_45%,#e9c767_85%,white_100%)] rounded-full animate-pulse"></div>
+                            </div>
+                        </div>
+                        <div class="p-3 flex items-center hover:bg-gray-50 cursor-pointer">
+                            <div class="w-4 h-4 rounded-full bg-gray-400 mr-3"></div>
+                            <div class="flex-1">
+                                <p class="font-medium text-gray-800">Thomas Harrison</p>
+                                <p class="text-xs text-gray-500">Last seen 2h ago</p>
+                            </div>
+                        </div>
+                        <div class="p-3 flex items-center hover:bg-gray-50 cursor-pointer">
+                            <div class="w-4 h-4 rounded-full bg-green-500 mr-3"></div>
+                            <div class="flex-1">
+                                <p class="font-medium text-gray-800">Olivia Liu</p>
+                                <p class="text-xs text-gray-500">Online</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 bg-[radial-gradient(closest-side,#d4af37_45%,#e9c767_85%,white_100%)] rounded-full animate-pulse"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="chatWindow" class="fixed bottom-0 right-4 w-80 bg-white rounded-t-lg shadow-lg transform translate-y-full transition-transform duration-300 ease-in-out z-[70]">
+                <div class="p-3 bg-primary text-white rounded-t-lg flex items-center justify-between cursor-pointer" id="chatHeader">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center mr-2">
+                            <i class="ri-user-3-line"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium">Emma Wilson</p>
+                            <p class="text-xs opacity-80">Online</p>
+                        </div>
+                    </div>
+                    <button id="minimizeChat" class="p-1 hover:bg-white/10 rounded-full">
+                        <i class="ri-subtract-line"></i>
+                    </button>
+                </div>
+                <div id="chatScrollWrapper" class="h-96 overflow-y-auto p-4 bg-gray-50">
+                    <div id="chatScrollContainer" class="flex flex-col gap-3">
+                    </div>
+                </div>
+                <div class="p-3 bg-white border-t">
+                    <div class="flex gap-2">
+                        <input id="chat-input" type="text" placeholder="Type a message..." class="flex-1 bg-gray-50 rounded-full text-black px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary">
+                        <button id="send-chat-button" class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center">
+                            <i class="ri-send-plane-line"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- Main Content -->
+    <main class="pt-16 pb-20">
+        <!-- Player Stats -->
+        <div class="player-stats text-white p-4 mb-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-12 h-12 rounded-full bg-secondary/20 flex items-center justify-center">
+                            <i class="ri-vip-diamond-fill ri-lg text-secondary"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs opacity-80">ARENA PLAYER</p>
+                            <h2 class="text-lg font-semibold">YOU</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs opacity-80">ELO</p>
+                    <p class="chip-count text-lg font-bold flex items-center">
+                        <i class="ri-medal-line ri-lg mr-1 text-secondary"></i>
+                        1,000
+                    </p>
+                </div>
+            </div>
+            <div class="mt-3 bg-white/10 rounded-lg p-3">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center">
+                            <span class="text-sm font-bold text-secondary">#1</span>
+                        </div>
+                        <span class="text-sm">Rank comming soon</span>
+                    </div>
+                    <div class="text-sm">
+                        Top 0.0001%
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Play Options -->
+        <div class="px-4 mb-6">
+            <h3 class="text-lg font-semibold mb-3">Play</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <a href="/static/quick_play.html">
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+                        <div class="h-24 relative">
+                            <img src="https://readdy.ai/api/search-image?query=icon%2C%203D%20cartoon%2C%20Casual%20poker%20table%20with%20relaxed%20atmosphere%2C%20friendly%20environment%2C%20the%20icon%20should%20take%20up%2070%25%20of%20the%20frame%2C%20vibrant%20colors%20with%20soft%20gradients%2C%20minimalist%20design%2C%20smooth%20rounded%20shapes%2C%20subtle%20shading%2C%20no%20outlines%2C%20centered%20composition%2C%20isolated%20on%20white%20background%2C%20playful%20and%20friendly%20aesthetic%2C%20isometric%20perspective%2C%20high%20detail%20quality%2C%20clean%20and%20modern%20look%2C%20single%20object%20focus&width=120&height=96&seq=5&orientation=squarish" alt="Casual" class="w-full h-full object-cover">
+                        </div>
+                        <div class="p-3 text-center">
+                            <p class="text-sm font-medium whitespace-nowrap overflow-hidden text-overflow-ellipsis">Quick Play</p>
+                            <p class="text-xs text-gray-500">Practice & Fun</p>
+                        </div>
+                    </div>
+                </a>
+                <div class="bg-white/50 rounded-lg shadow-sm border border-gray-100 overflow-hidden relative">
+                    <div class="absolute inset-0 bg-white/60 flex items-center justify-center z-10">
+                        <div class="bg-secondary text-white px-3 py-1 rounded-full text-xs font-medium shadow-sm">Coming Soon</div>
+                    </div>
+                    <div class="h-24 relative">
+                        <img src="https://readdy.ai/api/search-image?query=icon%2C%203D%20cartoon%2C%20Competitive%20poker%20table%20with%20trophy%20and%20rank%20symbols%2C%20the%20icon%20should%20take%20up%2070%25%20of%20the%20frame%2C%20vibrant%20colors%20with%20soft%20gradients%2C%20minimalist%20design%2C%20smooth%20rounded%20shapes%2C%20subtle%20shading%2C%20no%20outlines%2C%20centered%20composition%2C%20isolated%20on%20white%20background%2C%20playful%20and%20friendly%20aesthetic%2C%20isometric%20perspective%2C%20high%20detail%20quality%2C%20clean%20and%20modern%20look%2C%20single%20object%20focus&width=120&height=96&seq=6&orientation=squarish" alt="Ranked" class="w-full h-full object-cover opacity-75">
+                    </div>
+                    <div class="p-3 text-center">
+                        <p class="text-sm font-medium whitespace-nowrap overflow-hidden text-overflow-ellipsis text-gray-400">Ranked</p>
+                        <p class="text-xs text-gray-400">Competitive Play</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Leaderboard -->
+        <div class="px-4 mb-6 hidden">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-lg font-semibold">Leaderboard</h3>
+                <div class="text-xs text-gray-500">Weekly Rankings</div>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-3 border-b border-gray-100 flex items-center">
+                    <div class="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center mr-3">
+                        <i class="ri-vip-crown-fill ri-lg"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-medium">Michael Johnson</p>
+                        <p class="text-xs text-gray-500">Grandmaster • 4,520 RP</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-semibold text-primary">92%</p>
+                        <p class="text-xs text-gray-500">Win Rate</p>
+                    </div>
+                </div>
+                <div class="p-3 border-b border-gray-100 flex items-center">
+                    <div class="w-10 h-10 bg-secondary text-white rounded-full flex items-center justify-center mr-3">
+                        <i class="ri-vip-diamond-fill ri-lg"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-medium">Sarah Williams</p>
+                        <p class="text-xs text-gray-500">Diamond • 3,850 RP</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-semibold text-primary">88%</p>
+                        <p class="text-xs text-gray-500">Win Rate</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Your Recent Games -->
+        <div class="px-4 mb-6">
+            <h3 class="text-lg font-semibold mb-3">Your Recent Games</h3>
+            <div id="game_history" class="space-y-3">
+                <p class="text-sm text-gray-500">No recent games.</p>
+                <div class="bg-white rounded-lg p-3 border border-gray-100 shadow-sm hidden">
+                    <div class="flex justify-between mb-2">
+                        <h4 class="font-medium">Diamond League Match</h4>
+                        <span class="text-xs text-gray-500">April 21, 2025</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <p class="text-gray-600">Victory • MVP</p>
+                        <p class="text-green-600 font-medium">+25 RP</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script src="/static/lobby.js?v=47">
+    </script>
+</body>
+</html>

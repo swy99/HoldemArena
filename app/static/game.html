@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Texas Holdem Poker</title>
+	<link rel="icon" type="image/png" href="/static/favicon.png">
+	<link rel="manifest" href="/static/manifest.json">
+	<script>
+		if ('serviceWorker' in navigator) {
+			navigator.serviceWorker.register('/static/service-worker.js');
+		}
+	</script>
+	<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+	<script>tailwind.config={theme:{extend:{colors:{primary:'#082616',secondary:'#C8A327',tertiary:'#FFF8E8'},borderRadius:{'none':'0px','sm':'4px',DEFAULT:'8px','md':'12px','lg':'16px','xl':'20px','2xl':'24px','3xl':'32px','full':'9999px','button':'8px'}}}}</script>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap" rel="stylesheet">
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+	<style>
+		:where([class^="ri-"])::before { content: "\f3c2"; }
+		body {
+			background-color: #1c2129;
+			font-family: 'Inter', sans-serif;
+		}
+		@keyframes breathe-highlight {
+			0%, 100% {
+				background-color: #ffd034;
+			}
+			50% {
+				background-color: #FFF8E8;
+			}
+		}
+		
+		.table-info-pulse {
+			animation: breathe-highlight 2.8s infinite;
+		}
+		.poker-table-outer {
+			background-color: #1C1C1C;
+			box-shadow: 0 0 10px rgba(0, 0, 0, 0.5),
+			inset 0 0 3px rgba(0, 0, 0, 0.5);
+			
+		}
+		.poker-table-inner {
+			background-color: #0f4729;
+			box-shadow: 0 0 3px rgba(255, 255, 255, 0.3),
+			inset 0 0 5px rgba(0, 0, 0, 0.5);
+		}
+		.card {
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+			transition: transform 0.3s ease;
+			perspective: 600px;
+		}
+		.card-inner {
+			position: relative;
+			width: 100%;
+			height: 100%;
+			transform-style: preserve-3d;
+			transition: transform 0.6s ease;
+		}
+		
+		.card.flipped .card-inner {
+			transform: rotateY(180deg);
+		}
+		
+		.card-front, .card-back {
+			position: absolute;
+			backface-visibility: hidden;
+			width: 100%;
+			height: 100%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-weight: bold;
+			font-size: 1rem;
+		}
+		
+		.card-front {
+			z-index: 2;
+			background-color: white;
+		}
+		
+		.card-back {
+			transform: rotateY(180deg);
+			background: #333;
+			color: white;
+		}
+		@keyframes dealIn {
+			0% {
+				opacity: 0;
+				transform: translateY(-20px);
+			}
+			100% {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+		
+		.card.deal-in {
+			animation: dealIn 0.4s ease-out;
+		}
+		.active-player {
+			animation: pulse 2s infinite;
+		}
+		.bet-slider {
+			-webkit-appearance: none;
+			appearance: none;
+			height: 8px;
+			border-radius: 4px;
+			background: #e2e8f0;
+			outline: none;
+		}
+		.bet-slider::-webkit-slider-thumb {
+			-webkit-appearance: none;
+			appearance: none;
+			width: 24px;
+			height: 24px;
+			border-radius: 50%;
+			background: #2563EB;
+			cursor: pointer;
+			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+		}
+		input[type="range"]::-webkit-slider-thumb::after {
+			content: attr(data-value); /* JS로 업데이트 */
+			position: absolute;
+			top: -30px;
+			left: 50%;
+			transform: translateX(-50%);
+			background: white;
+			color: black;
+			padding: 2px 6px;
+			border-radius: 6px;
+			font-size: 12px;
+		}
+		.dealer-button {
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+		}
+		@keyframes pulse {
+			0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+			70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+			100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+		}
+		.timer-progress {
+			transition: width 1s linear;
+		}
+		.action-button {
+			transition: all 0.2s ease;
+		} 
+		.btn-tap-safe {
+			min-height: 44px;
+		}
+		.pot-amount {
+			text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+		}
+		@keyframes outline-pulse {
+			0%, 100% {
+				opacity: 1;
+			}
+			50% {
+				opacity: 0.6;
+			}
+		}
+		.pulse-outline::before {
+			content: '';
+			position: absolute;
+			inset: 0;
+			margin: -0.5rem; /* m-2 */
+			border: 2px solid #C8A327;
+			border-radius: 0.75rem; /* rounded-xl */
+			animation: outline-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+		}
+	</style>
+</head>
+<body class="h-screen overflow-hidden">
+	<!-- Nav Bar -->
+	<div class="fixed top-0 w-full bg-[#0e4429] text-tertiary z-50 px-4 py-3 flex items-center justify-between shadow-md">
+		<div class="w-8 h-8 flex items-center justify-center cursor-pointer">
+			<i onclick="exit()" class="ri-arrow-left-s-line ri-xl"></i>
+		</div>
+		<div class="flex items-center">
+			<img src="logo_alpha4.png" alt="Logo" class="w-4 h-5 mr-2">
+			<h1 class="font-['Montserrat'] text-xl font-bold">HOLD'EM ARENA</h1>
+		</div>
+		<div class="flex items-center space-x-3">
+			<!-- <div class="flex items-center bg-tertiary/20 rounded-full px-3 py-1">
+				<i class="ri-user-line ri-lg text-tertiary mr-1"></i>
+				<span class="text-sm font-medium">You</span>
+			</div> -->
+			<!-- <div class="flex items-center bg-tertiary/20 rounded-full px-3 py-1">
+				<i class="ri-time-line ri-lg text-blue-300 mr-1"></i>
+				<span class="text-sm font-medium" id="timeBank">30s</span>
+			</div> -->
+		</div>
+	</div>
+	<!-- Game Table Area -->
+	<div class="pt-14 pb-20 h-[calc(100%-20px)] flex flex-col">
+		<!-- Table Info -->
+		<div class="px-4 py-2 bg-tertiary shadow-sm flex justify-between items-center">
+			<div>
+				<h1 id="info_big" class="text-sm font-medium">High Stakes Table</h1>
+				<p id="info_small" class="text-xs text-gray-500">Blinds: $50/$100</p>
+			</div>
+			<div class="flex items-center space-x-2">
+				<div class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 cursor-pointer">
+					<i class="ri-chat-1-line text-gray-600"></i>
+				</div>
+				<div class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 cursor-pointer">
+					<i onclick="refresh()" class="ri-reset-right-fill text-gray-600"></i>
+				</div>
+			</div>
+		</div>
+		<!-- Action Timer -->
+		<div class="w-full bg-gray-200 h-1">
+			<div class="timer-progress bg-blue-500 h-full w-full transition-all duration-100"></div>
+		</div>
+		<!-- Poker Table -->
+		<div class="flex-1 relative overflow-hidden px-2 py-3">
+			<div class="poker-table-outer w-full h-full rounded-full flex items-center justify-center relative">
+				<div class="absolute inset-0 pointer-events-none z-0 flex items-center justify-center">
+					<div class="poker-table-inner w-[90%] h-[93%] rounded-full flex items-center justify-center"></div>
+				</div>
+				<!-- Center Pot Area -->
+				<div class="relative z-10 w-full h-full flex items-center justify-center">
+					<div class="absolute z-20 flex flex-col items-center">
+						<div id="pot" class="pot-amount text-tertiary font-bold text-xl mb-1">Pot: $2,450</div>
+						<!-- Community Cards -->
+						<div id="ccards" class="flex space-x-0.5">
+						</div>
+					</div>
+					
+					<!-- Player Positions -->
+					<!-- Player 1 (Bottom - You) -->
+					<div id="player1" class="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex flex-col items-center z-30">
+						<div id="p1_hand" class="flex space-x-1 mb-2"></div>
+						<div id="p1_name" class="text-tertiary text-xs mt-1 font-medium">You</div>
+						<div id="p1_chips" class="bg-tertiary/20 rounded-full px-2 py-0.5 text-tertiary text-xs mt-1">$4,325</div>
+						<div id="p1_bets" class="text-tertiary text-xs mt-1">$200</div>
+						<span id="p1_bank" class="text-tertiary text-xs mt-1 font-medium">⏱️2:00</span>
+					</div>
+					<!-- Player 8 (Bottom Right) -->
+					<div id="player8" class="absolute bottom-10 right-10 flex flex-col items-center">
+						<div id="p8_hand" class="flex space-x-0.5 mb-2"></div>
+						<div id="p8_name" class="text-tertiary text-xs mt-1">p8</div>
+						<div id="p8_chips" class="bg-tertiary/20 rounded-full px-2 py-0.5 text-tertiary text-xs mt-1">$2,150</div>
+						<div id="p8_bets" class="text-tertiary text-xs mt-1">$200</div>
+						<span id="p8_bank" class="text-tertiary text-xs mt-1 font-medium">⏱️2:00</span>
+					</div>
+					<!-- Player 7 (Right) -->
+					<div id="player7" class="absolute right-5 top-1/2 transform -translate-y-1/2 flex flex-col items-center">
+						<div id="p7_hand" class="flex space-x-0.5 mb-2"></div>
+						<div id="p7_name" class="text-tertiary text-xs mt-1">p7</div>
+						<div id="p7_chips" class="bg-tertiary/20 rounded-full px-2 py-0.5 text-tertiary text-xs mt-1">$5,780</div>
+						<div id="p7_bets" class="text-tertiary text-xs mt-1">$200</div>
+						<span id="p7_bank" class="text-tertiary text-xs mt-1 font-medium">⏱️2:00</span>
+					</div>
+					<!-- Player 6 (Top Right) -->
+					<div id="player6" class="absolute top-10 right-10 flex flex-col items-center">
+						<div id="p6_hand" class="flex space-x-0.5 mb-2"></div>
+						<div id="p6_name" class="text-tertiary text-xs mt-1">p6</div>
+						<div id="p6_chips" class="bg-tertiary/20 rounded-full px-2 py-0.5 text-tertiary text-xs mt-1">$3,450</div>
+						<div id="p6_bets" class="text-tertiary text-xs mt-1">$200</div>
+						<span id="p6_bank" class="text-tertiary text-xs mt-1 font-medium">⏱️2:00</span>
+					</div>
+					<!-- Player 5 (Top) -->
+					<div id="player5" class="absolute top-5 left-1/2 transform -translate-x-1/2 flex flex-col items-center">
+						<div id="p5_hand" class="flex space-x-0.5 mb-2"></div>
+						<div id="p5_name" class="text-tertiary text-xs mt-1">p5</div>
+						<div id="p5_chips" class="bg-tertiary/20 rounded-full px-2 py-0.5 text-tertiary text-xs mt-1">$8,920</div>
+						<div id="p5_bets" class="text-tertiary text-xs mt-1">$350</div>
+						<span id="p5_bank" class="text-tertiary text-xs mt-1 font-medium">⏱️2:00</span>
+					</div>
+					<!-- Player 4 (Top Left) -->
+					<div id="player4" class="absolute top-10 left-10 flex flex-col items-center">
+						<div id="p4_hand" class="flex space-x-0.5 mb-2"></div>
+						<div id="p4_name" class="text-tertiary text-xs mt-1">p4</div>
+						<div id="p4_chips" class="bg-tertiary/20 rounded-full px-2 py-0.5 text-tertiary text-xs mt-1">$1,230</div>
+						<div id="p4_bets" class="text-tertiary text-xs mt-1">$200</div>
+						<span id="p4_bank" class="text-tertiary text-xs mt-1 font-medium">⏱️2:00</span>
+					</div>
+					<!-- Player 3 (Left) -->
+					<div id="player3" class="absolute left-5 top-1/2 transform -translate-y-1/2 flex flex-col items-center">
+						<div id="p3_hand" class="flex space-x-0.5 mb-2"></div>
+						<div id="p3_name" class="text-tertiary text-xs mt-1">p3</div>
+						<div id="p3_chips" class="bg-tertiary/20 rounded-full px-2 py-0.5 text-tertiary text-xs mt-1">$6,750</div>
+						<div id="p3_bets" class="text-tertiary text-xs mt-1">$200</div>
+						<span id="p3_bank" class="text-tertiary text-xs mt-1 font-medium">⏱️2:00</span>
+					</div>
+					<!-- Player 2 (Bottom Left) -->
+					<div id="player2" class="absolute bottom-10 left-10 flex flex-col items-center">
+						<div id="p2_hand" class="flex space-x-0.5 mb-2"></div>
+						<div id="p2_name" class="text-tertiary text-xs mt-1">p2</div>
+						<div id="p2_chips" class="bg-tertiary/20 rounded-full px-2 py-0.5 text-tertiary text-xs mt-1">$3,890</div>
+						<div id="p2_bets" class="text-tertiary text-xs mt-1">$200</div>
+						<span id="p2_bank" class="text-tertiary text-xs mt-1 font-medium">⏱️2:00</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- 드래그 핸들 위에 떠 있는 오픈 버튼 -->
+	<button id="expand_button"
+	class="fixed bottom-[22px] btn-tap-safe opacity-70 left-1/2 transform -translate-x-1/2 z-50
+         text-xs font-semibold text-gray-600 bg-white rounded-full border px-4 py-1 shadow">
+	▲ OPEN
+</button>
+<!-- Action Controls -->
+<div id="action_control"
+class="fixed bottom-0 left-0 w-full bg-white z-50 rounded-t-2xl shadow-lg overflow-hidden transition-all duration-300"
+style="height: 230px;">
+
+<div id="dragHandle" class="w-full h-6 flex items-center justify-center cursor-pointer">
+	<div class="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+</div>
+<div class="flex flex-col space-y-3 px-4 py-3 pt-0">
+	<!-- Action Buttons and Bet Slider -->
+	<div class="flex items-center gap-2 px-1">
+		<button id="fold_button" onclick="action(0)" class="action-button btn-tap-safe bg-gray-300 text-white px-4 py-2.5 text-xs font-medium !rounded-button flex-1">
+			Fold
+		</button>
+		<button id="call_button" onclick="call()" class="action-button btn-tap-safe bg-green-500 text-white px-4 py-2.5 text-xs font-medium !rounded-button flex-1">
+			Call🪙10
+		</button>
+	</div>
+	<!-- Custom Bet Slider -->
+	<div class="px-4 mt-1 mb-2">
+		<div class="flex justify-between text-xs font-semibold text-gray-700 px-1 mt-4">
+			<div id="min_raise_value" class="text-primary">🪙30</div>
+			<div id="all_in_value" class="text-primary">🪙1,557</div>
+		</div>
+		<input id="bet_slider" type="range" min="4" max="200" value="0" step="1" class="bet-slider w-full mt-1 mb-0.5">
+		<div class="flex justify-between text-[11px] text-gray-500 px-1">
+			<div>min-raise</div>
+			<div>all-in</div>
+		</div>
+	</div>
+	<div class="flex items-center space-x-2">
+		<span class="text-sm">🪙</span>
+		<input id="bet_value" type="number" min="20" max="500" step="10" class="btn-tap-safe w-[60px] px-2 py-1 border rounded text-sm text-left">
+		<button id="raise_button" onclick="raise()" class="action-button btn-tap-safe bg-blue-500 text-white px-4 py-2.5 text-xs font-medium !rounded-button flex-1">
+			Raise
+		</button>
+	</div>
+</div>
+</div>
+
+<!-- 오버레이 (숨기고 있다가 JS로 보여주기) -->
+<div id="rankingOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+	<div class="bg-tertiary rounded-2xl p-6 w-80 max-h-[90vh] overflow-y-auto shadow-lg">
+		<h2 class="text-xl font-bold text-center mb-4">🏆 Game Result</h2>
+		<ul id="rankings" class="space-y-2">
+			<!-- 예시 유저 항목 -->
+			<li class="flex justify-between border-b pb-1">
+				<span class="font-medium">1. Player A</span>
+				<span class="text-primary font-bold">🪙 1830</span>
+			</li>
+			<li class="flex justify-between border-b pb-1">
+				<span class="font-medium">2. Player B</span>
+				<span class="text-primary font-bold">🪙 1420</span>
+			</li>
+			<li class="flex justify-between border-b pb-1">
+				<span class="font-medium">3. You</span>
+				<span class="text-primary font-bold">🪙 1180</span>
+			</li>
+			<!-- ...더 많은 항목 -->
+		</ul>
+		<button onclick="closeRanking()" class="mt-6 w-full py-2 bg-[#C8A327] text-tertiary rounded-md font-semibold">Close</button>
+	</div>
+</div>
+<audio id="sfx_cardflip" src="/static/sound/cardflip.mp3" preload="auto"></audio>
+<audio id="sfx_cardflip2" src="/static/sound/cardflip_2.mp3" preload="auto"></audio>
+<audio id="sfx_deal" src="/static/sound/deal.ogg" preload="auto"></audio>
+<audio id="sfx_chips" src="/static/sound/chips.wav" preload="auto"></audio>
+<audio id="sfx_click" src="/static/sound/click.wav" preload="auto"></audio>
+<audio id="sfx_vic" src="/static/sound/vic.mp3" preload="auto"></audio>
+<audio id="sfx_coins" src="/static/sound/coins.mp3" preload="auto"></audio>
+<script src="game.card.js?v=7"></script>
+<script src="game.js?v=53"></script>
+</body>
+</html>

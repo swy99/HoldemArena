@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Play</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/service-worker.js');
+        }
+    </script>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script>tailwind.config={theme:{extend:{colors:{primary:'#0B4619',secondary:'#d4af37'},borderRadius:{'none':'0px','sm':'4px',DEFAULT:'8px','md':'12px','lg':'16px','xl':'20px','2xl':'24px','3xl':'32px','full':'9999px','button':'8px'}}}}</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
+    <style>
+        :where([class^="ri-"])::before { content: "\f3c2"; }
+        body {
+            font-family: sans-serif;
+            background-color: #f9f9f9;
+        }
+        .lobby-card {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        .player-slot {
+            background: rgba(71, 71, 71, 0.05);
+            box-shadow: inset 2px 2px 5px rgba(0,0,0,0.05),
+            inset -2px -2px 5px rgba(255,255,255,0.1);
+        }
+        .player-slot-active {
+            background: radial-gradient(ellipse, rgba(212, 175, 55, 0.3) 0%, rgba(212, 175, 55, 0.5) 90%,  rgba(212, 175, 55, 0.9) 100%);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        }
+        .game-mode-active {
+            border-bottom: 2px solid #d4af37;
+        }
+        #chatWindow {
+            display: flex;
+            flex-direction: column;
+            height: 500px; /* 전체 채팅창 높이 */
+        }
+        #chatWindow .flex.flex-col {
+            flex: 1;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-800">
+    <div id="blurOverlay" class="fixed inset-0 bg-black/10 backdrop-blur-sm z-40 hidden"></div>
+    <!-- Header -->
+    <header class="bg-primary text-white fixed w-full top-0 z-50 shadow-md">
+        <div class="flex items-center justify-between px-4 py-3">
+            
+            <div class="w-8 h-8 flex items-center justify-center cursor-pointer" onclick="exit()">
+                <i class="ri-arrow-left-s-line ri-xl"></i>
+            </div>
+            <div class="flex items-center">
+                
+                <div class="flex items-center ml-3">
+                    <img src="/static/logo_alpha4.png" alt="Logo" class="w-4 h-5 mr-2">
+                    <h1 class="font-['Montserrat'] text-xl font-bold">HOLD'EM ARENA</h1>
+                </div>
+            </div>
+            <div class="flex items-center">
+                <div class="relative w-8 h-8 flex items-center justify-center">
+                    <i id="friends" class="ri-group-line ri-lg"></i>
+                    <div id="friend-global-indicator"
+                        class="absolute top-0 right-0 w-2.5 h-2.5 bg-[radial-gradient(closest-side,#d4af37_45%,#e9c767_85%,white_100%)]
+                        rounded-full animate-pulse hidden">
+                </div>
+            </div>
+        </div>
+        <div id="sideNav" class="fixed top-0 right-0 h-full w-72 bg-white transform translate-x-full transition-transform duration-300 ease-in-out shadow-lg z-50">
+            <div class="p-4 bg-primary text-white flex items-center justify-between">
+                <h3 class="font-semibold">Friends</h3>
+                <button id="closeSideNav" class="p-1 hover:bg-white/10 rounded-full">
+                    <i class="ri-close-line ri-lg"></i>
+                </button>
+            </div>
+            <div class="overflow-y-auto h-[calc(100%-60px)]">
+                <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span class="text-sm text-gray-600">3 Online</span>
+                    </div>
+                    <button id="addFriendButton" class="p-2 text-primary hover:bg-primary/5 rounded-full">
+                        <i class="ri-user-add-line ri-lg"></i>
+                    </button>
+                </div>
+                <div class="px-4 py-3 border-b border-gray-100 bg-primary/5">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                                <i class="ri-user-add-line text-primary"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-black font-medium">Emma Wattson</p>
+                                <p class="text-xs text-gray-500">wants to be friends</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button class="w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center hover:bg-green-600 transition-colors">
+                                <i class="ri-check-line"></i>
+                            </button>
+                            <button class="w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors">
+                                <i class="ri-close-line"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="divide-y divide-gray-100">
+                    <div class="p-3 flex items-center hover:bg-gray-50 cursor-pointer">
+                        <div class="w-4 h-4 rounded-full bg-green-500 mr-3"></div>
+                        <div class="flex-1">
+                            <p class="font-medium text-gray-800">Alexandra Walker</p>
+                            <p class="text-xs text-gray-500">Online</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 bg-[radial-gradient(closest-side,#d4af37_45%,#e9c767_85%,white_100%)] rounded-full animate-pulse"></div>
+                        </div>
+                    </div>
+                    <div class="p-3 flex items-center hover:bg-gray-50 cursor-pointer">
+                        <div class="w-4 h-4 rounded-full bg-gray-400 mr-3"></div>
+                        <div class="flex-1">
+                            <p class="font-medium text-gray-800">Thomas Harrison</p>
+                            <p class="text-xs text-gray-500">Last seen 2h ago</p>
+                        </div>
+                    </div>
+                    <div class="p-3 flex items-center hover:bg-gray-50 cursor-pointer">
+                        <div class="w-4 h-4 rounded-full bg-green-500 mr-3"></div>
+                        <div class="flex-1">
+                            <p class="font-medium text-gray-800">Olivia Liu</p>
+                            <p class="text-xs text-gray-500">Online</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 bg-[radial-gradient(closest-side,#d4af37_45%,#e9c767_85%,white_100%)] rounded-full animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="chatWindow" class="fixed bottom-0 right-4 w-80 bg-white rounded-t-lg shadow-lg transform translate-y-full transition-transform duration-300 ease-in-out z-[70]">
+            <div class="p-3 bg-primary text-white rounded-t-lg flex items-center justify-between cursor-pointer" id="chatHeader">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center mr-2">
+                        <i class="ri-user-3-line"></i>
+                    </div>
+                    <div>
+                        <p class="font-medium">Emma Wilson</p>
+                        <p class="text-xs opacity-80">Online</p>
+                    </div>
+                </div>
+                <button id="minimizeChat" class="p-1 hover:bg-white/10 rounded-full">
+                    <i class="ri-subtract-line"></i>
+                </button>
+            </div>
+            <div id="chatScrollWrapper" class="h-96 overflow-y-auto p-4 bg-gray-50">
+                <div id="chatScrollContainer" class="flex flex-col gap-3">
+                </div>
+            </div>
+            <div class="p-3 bg-white border-t">
+                <div class="flex gap-2">
+                    <input id="chat-input" type="text" placeholder="Type a message..." class="flex-1 bg-gray-50 rounded-full text-black px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary">
+                    <button id="send-chat-button" class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center">
+                        <i class="ri-send-plane-line"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+<!-- Main Content -->
+<main class="pt-16 pb-20">
+    <!-- Title -->
+    <div class="px-4 py-3">
+        <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold">Quick Play</h2>
+        </div>
+    </div>
+    <!-- Player Slots -->
+    <div class="px-4 py-3">
+        <div class="flex justify-between items-center mb-3">
+            <div class="flex items-center">
+                <div class="w-6 h-6 flex items-center justify-center mr-2">
+                    <i class="ri-user-add-line text-primary"></i>
+                </div>
+                <h3 id="player-count" class="text-sm font-medium">Players (1/8)</h3>
+            </div>
+        </div>
+        <!-- Player Slots Grid -->
+        <div class="grid grid-cols-2 gap-3">
+            <!-- Current Player -->
+            <div class="player-slot-active rounded-lg p-3 h-[64px] flex flex-col items-center justify-center">
+                <p id="p1_name" class="text-sm font-medium">Me</p>
+            </div>
+            <!-- Empty Slots -->
+            <div class="player-slot rounded-lg p-3 h-[64px] flex flex-col items-center justify-center cursor-pointer">
+                <div class="w-10 h-10 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center">
+                    <i class="ri-add-line ri-lg text-gray-400"></i>
+                </div>
+            </div>
+            <div class="player-slot rounded-lg p-3 h-[64px] flex flex-col items-center justify-center cursor-pointer">
+                <div class="w-10 h-10 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center">
+                    <i class="ri-add-line ri-lg text-gray-400"></i>
+                </div>
+            </div>
+            <div class="player-slot rounded-lg p-3 h-[64px] flex flex-col items-center justify-center cursor-pointer">
+                <div class="w-10 h-10 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center">
+                    <i class="ri-add-line ri-lg text-gray-400"></i>
+                </div>
+            </div>
+            <div class="player-slot rounded-lg p-3 h-[64px] flex flex-col items-center justify-center cursor-pointer">
+                <div class="w-10 h-10 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center">
+                    <i class="ri-add-line ri-lg text-gray-400"></i>
+                </div>
+            </div>
+            <div class="player-slot rounded-lg p-3 h-[64px] flex flex-col items-center justify-center cursor-pointer">
+                <div class="w-10 h-10 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center">
+                    <i class="ri-add-line ri-lg text-gray-400"></i>
+                </div>
+            </div>
+            <div class="player-slot rounded-lg p-3 h-[64px] flex flex-col items-center justify-center cursor-pointer">
+                <div class="w-10 h-10 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center">
+                    <i class="ri-add-line ri-lg text-gray-400"></i>
+                </div>
+            </div>
+            <div class="player-slot rounded-lg p-3 h-[64px] flex flex-col items-center justify-center cursor-pointer">
+                <div class="w-10 h-10 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center">
+                    <i class="ri-add-line ri-lg text-gray-400"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Start Game Button -->
+    <div class="px-4 py-3">
+        <button id="findMatchBtn" disabled="true" class="w-full bg-primary text-white h-12 !rounded-button font-medium opacity-50 cursor-not-allowed">
+            Find Match
+        </button>
+    </div>
+    <!-- Suggested Friends -->
+    <!-- <div class="px-4 py-3 border-t">
+        <div class="flex justify-between items-center mb-3">
+            <h3 class="text-sm font-medium">Suggested</h3>
+            <div class="flex">
+                <div class="text-xs text-gray-500 px-2 py-1 border-b-2 border-secondary">Suggested</div>
+                <div class="text-xs text-gray-500 px-2 py-1">Recently Played (3)</div>
+            </div>
+        </div>
+        <div class="space-y-2">
+            <div class="flex items-center justify-between bg-white rounded-lg p-2 shadow-sm">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-2">
+                        <i class="ri-user-3-line text-primary"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium">Michael Chen</p>
+                        <p class="text-xs text-gray-500">Last played: 2h ago</p>
+                    </div>
+                </div>
+                <button class="w-7 h-7 flex items-center justify-center bg-primary/10 text-primary rounded-full cursor-pointer">
+                    <i class="ri-add-line"></i>
+                </button>
+            </div>
+            <div class="flex items-center justify-between bg-white rounded-lg p-2 shadow-sm">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-2">
+                        <i class="ri-user-3-line text-primary"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium">Sarah Johnson</p>
+                        <p class="text-xs text-gray-500">Last played: 5h ago</p>
+                    </div>
+                </div>
+                <button class="w-7 h-7 flex items-center justify-center bg-primary/10 text-primary rounded-full cursor-pointer">
+                    <i class="ri-add-line"></i>
+                </button>
+            </div>
+            <div class="flex items-center justify-between bg-white rounded-lg p-2 shadow-sm">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-2">
+                        <i class="ri-user-3-line text-primary"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium">David Rodriguez</p>
+                        <p class="text-xs text-gray-500">Last played: 1d ago</p>
+                    </div>
+                </div>
+                <button class="w-7 h-7 flex items-center justify-center bg-primary/10 text-primary rounded-full cursor-pointer">
+                    <i class="ri-add-line"></i>
+                </button>
+            </div>
+        </div>
+    </div> -->
+    <!-- Chat Section -->
+    <!-- <div class="px-4 py-3 border-t bg-gray-50">
+        <div class="flex justify-between items-center mb-3">
+            <div class="flex items-center gap-2">
+                <i class="ri-message-3-line text-primary"></i>
+                <h3 class="text-sm font-medium">Lobby Chat</h3>
+            </div>
+        </div>
+        <div
+        class="h-[300px] overflow-y-auto mb-3 space-y-2 bg-white rounded-lg p-2 shadow-sm"
+        >
+        <div class="flex flex-col gap-2">
+            <div class="bg-primary/5 rounded-lg p-2 max-w-[85%]">
+                <div class="flex items-center gap-1">
+                    <span class="text-xs font-medium text-primary">SappyBoi</span>
+                    <span class="text-[10px] text-gray-400">2:35 PM</span>
+                </div>
+                <p class="text-sm text-gray-700">
+                    Hey everyone! Ready for some poker?
+                </p>
+            </div>
+            <div class="bg-primary/10 rounded-lg p-2 max-w-[85%] ml-auto">
+                <div class="flex items-center gap-1 justify-end">
+                    <span class="text-xs font-medium text-primary">You</span>
+                    <span class="text-[10px] text-gray-400">2:36 PM</span>
+                </div>
+                <p class="text-sm text-gray-700">
+                    Count me in! Just need a few minutes.
+                </p>
+            </div>
+            <div class="bg-primary/5 rounded-lg p-2 max-w-[85%]">
+                <div class="flex items-center gap-1">
+                    <span class="text-xs font-medium text-primary"
+                    >Sarah Johnson</span
+                    >
+                    <span class="text-[10px] text-gray-400">2:37 PM</span>
+                </div>
+                <p class="text-sm text-gray-700">
+                    Looking forward to playing with you all!
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="relative">
+        <input
+        type="text"
+        placeholder="Type your message..."
+        class="w-full pr-12 pl-4 py-3 bg-white border-none rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary shadow-sm"
+        style="box-shadow: 0 2px 4px rgba(0,0,0,0.05);"
+        />
+        <button
+        class="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-primary text-white rounded-full hover:bg-primary/90 transition-colors"
+        >
+        <i class="ri-send-plane-line"></i>
+    </button>
+</div> -->
+</main>
+<script src="/static/quick_play.js?v=45">
+</script>
+</body>
+</html>

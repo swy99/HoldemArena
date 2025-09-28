@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        const token = localStorage.getItem("holdemarena_token");
+        if (token){
+            fetch("/api/me", {
+                headers: { Authorization: "Bearer " + localStorage.getItem("holdemarena_token") }
+            }).then(res => {
+                console.log(res.status);
+                res.json().then(x => console.log(x));
+                if (res.status === "401" || !res.ok){
+                    location.href = "/static/delete_login.html";
+                }
+            });
+        }
+    </script>
+    <meta charset="UTF-8">
+    <title>Delete Account</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f9fafb;
+            padding: 2rem;
+            max-width: 600px;
+            margin: auto;
+            color: #111827;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        p {
+            margin-bottom: 1rem;
+        }
+        button {
+            background-color: #dc2626;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .success {
+            color: green;
+            margin-top: 1rem;
+        }
+        .error {
+            color: red;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Delete Your Account and Data</h1>
+    <p>If you wish to delete your account and all associated data, click the button below. This action is irreversible.</p>
+    <button onclick="deleteAccount()">Delete My Account</button>
+    <p class="success" id="successMsg" style="display: none;">✅ Your account has been successfully deleted.</p>
+    <p class="error" id="errorMsg" style="display: none;"></p>
+    
+    <script>
+        async function deleteAccount() {
+            const token = localStorage.getItem("holdemarena_token");
+            if (!token) {
+                document.getElementById("errorMsg").textContent = "No login token found. Please log in first.";
+                document.getElementById("errorMsg").style.display = "block";
+                return;
+            }
+            
+            try {
+                const res = await fetch("/api/delete", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": "Bearer " + token
+                    }
+                });
+                
+                if (res.ok) {
+                    document.getElementById("successMsg").style.display = "block";
+                    localStorage.removeItem("holdemarena_token");
+                } else {
+                    const data = await res.json();
+                    document.getElementById("errorMsg").textContent = "Error: " + data.detail;
+                    document.getElementById("errorMsg").style.display = "block";
+                }
+            } catch (err) {
+                document.getElementById("errorMsg").textContent = "Network error: " + err.message;
+                document.getElementById("errorMsg").style.display = "block";
+            }
+        }
+    </script>
+</body>
+</html>

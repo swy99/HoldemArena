@@ -1,0 +1,4 @@
+old dark green #0B351F
+dark green #082616
+gold #C8A327
+white #FFF8E8
